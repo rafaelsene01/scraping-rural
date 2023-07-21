@@ -15,7 +15,7 @@ const headers = {
   // "Content-Length": "166",
   "Content-Type": "application/x-www-form-urlencoded",
   Origin: `${process.env.BASE_URL}`,
-  Referer: `{process.env.BASE_URL}/accounts/login/?next=/`,
+  Referer: `${process.env.BASE_URL}/accounts/login/?next=/`,
   "Sec-Ch-Ua":
     '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
   "Sec-Ch-Ua-Mobile": "?0",
