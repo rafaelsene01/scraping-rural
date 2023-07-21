@@ -2,9 +2,6 @@ import "dotenv/config";
 import { load } from "cheerio";
 import cloudScraper from "cloudscraper";
 import * as fastq from "fastq";
-// import tough from "tough-cookie";
-
-// const cookieJar = new tough.CookieJar();
 
 const headers = {
   Accept:
@@ -12,7 +9,6 @@ const headers = {
   "Accept-Encoding": "gzip, deflate, br",
   "Accept-Language": "pt-PT,pt;q=0.9,en-US;q=0.8,en;q=0.7",
   "Cache-Control": "max-age=0",
-  // "Content-Length": "166",
   "Content-Type": "application/x-www-form-urlencoded",
   Origin: `${process.env.BASE_URL}`,
   Referer: `${process.env.BASE_URL}/accounts/login/?next=/`,
@@ -45,35 +41,19 @@ const cloudPost = async (options) => {
   });
 };
 
+const q = fastq.promise(asyncWorker, 40);
+
 const Cars = [];
 async function asyncWorker(car) {
   const { body: b5 } = await cloudGet({
     uri: `${process.env.BASE_URL}/car/item/${car}/`,
   });
 
-  // const registro_car = getText("Registro no CAR", b5);
-  // const cadastrante = getText("Cadastrante", b5);
-  // const area = getText("Área", b5);
-  // const monicipio = getText("Muncípio", b5);
-  // const uf = getText("UF", b5);
-  // const modulo_fiscal = getText("Módulo Fiscal", b5);
-  // const tipo = getText("Tipo Imóvel", b5);
-  // const situacao = getText("Situação", b5);
-  // const condicao = getText("Condição", b5);
-
   const $ = load(b5);
   const json = $("#carData[value]").attr("value");
 
   Cars.push(JSON.parse(json));
 }
-
-export const getText = (text, html) => {
-  const $ = load(html);
-  const element = $("*")
-    .toArray()
-    .find((el) => $(el).text().trim() === text);
-  return $(element).next().text().replace("\n", "").replace(/\s+/g, " ").trim();
-};
 
 const api = async () => {
   await cloudGet({
@@ -106,8 +86,6 @@ const api = async () => {
   }
 
   const taxId = "25570056300";
-
-  const q = fastq.promise(asyncWorker, 40);
 
   let stop = false;
   let page = 1;
