@@ -48,8 +48,6 @@ async function asyncWorker(car) {
   const $ = load(b5);
   const json = $("#carData[value]").attr("value");
 
-  console.log(JSON.parse(json));
-
   return JSON.parse(json);
 }
 
@@ -81,44 +79,66 @@ class Car {
     });
   }
 
-  async search(taxId) {
-    const q = fastq.promise(asyncWorker, 100);
+  listCar(body) {
+    const $ = load(body);
+    const p = $("p.card-text");
+    if (!p?.text()?.trim()?.length) return [];
+    return p?.toArray()?.map((el) => {
+      const [car] = /[\D]{2}-[\d-]+[\d\D]([^,]+),/.exec(
+        $(el)?.text()?.replace("\n", "")?.replace(/\s+/g, " ").trim()
+      );
+      return car.replace(",", "");
+    });
+  }
 
+  async search(taxId) {
     const cars = [];
     let stop = false;
     let page = 1;
-    while (!stop) {
-      const uri =
-        page > 1
-          ? `${process.env.BASE_URL}/search?q=${taxId}&page=${page}`
-          : `${process.env.BASE_URL}/search?q=${taxId}`;
-      const { body } =
-        page > 1
-          ? await cloudGet({
-              uri,
-              headers: {
-                Referer: `${process.env.BASE_URL}/search?q=${taxId}&page=${
-                  page - 1
-                }`,
-              },
-            })
-          : await cloudGet({
-              uri,
-            });
+
+    const q = fastq.promise(asyncWorker, 100);
+
+    {
+      let body;
+      const res = await cloudGet({
+        uri: `${process.env.BASE_URL}/search?q=${taxId}`,
+      });
+      body = res.body;
 
       let $ = load(body);
+      const isloggedIn = $(`a[href="/logout"]`);
+
+      if (!isloggedIn.length) {
+        await this.login();
+        const res2 = await cloudGet({
+          uri: `${process.env.BASE_URL}/search?q=${taxId}`,
+        });
+        body = res2.body;
+        $ = load(body);
+      }
+
       const next = $(`a[href="/search?q=${taxId}&page=${page++}"]`);
 
-      if (next?.length === 0) stop = true;
-      else {
-        const p = $("p.card-text");
-        p.toArray().map((el) => {
-          const [car] = /[\D]{2}-[\d-]+[\d\D]([^,]+),/.exec(
-            $(el).text().replace("\n", "").replace(/\s+/g, " ").trim()
-          );
-          q.push(car.replace(",", "")).then((result) => cars.push(result));
-        });
-      }
+      if (!next?.length) stop = true;
+      const list = this.listCar(body);
+      list.forEach((car) => q.push(car).then((result) => cars.push(result)));
+    }
+
+    while (!stop) {
+      const { body } = await cloudGet({
+        uri: `${process.env.BASE_URL}/search?q=${taxId}&page=${page}`,
+        headers: {
+          Referer: `${process.env.BASE_URL}/search?q=${taxId}&page=${page - 1}`,
+        },
+      });
+
+      const list = this.listCar(body);
+      list.forEach((car) => q.push(car).then((result) => cars.push(result)));
+
+      const $ = load(body);
+      const next = $(`a[href="/search?q=${taxId}&page=${page++ + 1}"]`);
+
+      if (!next?.length) stop = true;
     }
 
     await q.drained();

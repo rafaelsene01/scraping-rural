@@ -1,11 +1,15 @@
 import "dotenv/config";
+import express from "express";
 import Car from "./car.js";
 
-(async function () {
-  const car = new Car();
+const app = express();
 
-  await car.login();
-  Promise.all([await car.search("CPF")]).then((list) => {
-    console.log("CPF => ", list[0].length);
-  });
-})();
+const car = new Car();
+
+app.use(express.json());
+app.get("/:taxId", async function (req, res) {
+  const { taxId } = req.params;
+  res.send(await car.search(taxId));
+});
+
+app.listen(3000, () => console.log("http://localhost:3000"));
