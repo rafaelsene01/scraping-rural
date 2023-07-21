@@ -106,7 +106,9 @@ const api = async () => {
   }
 
   const taxId = "25570056300";
-  const items = [];
+
+  const q = fastq.promise(asyncWorker, 40);
+
   let stop = false;
   let page = 1;
   while (!stop) {
@@ -138,16 +140,11 @@ const api = async () => {
         const [car] = /[\D]{2}-[\d-]+[\d\D]([^,]+),/.exec(
           $(el).text().replace("\n", "").replace(/\s+/g, " ").trim()
         );
-        items.push(car.replace(",", ""));
+        q.push(car.replace(",", ""));
       });
     }
   }
 
-  console.log(items);
-
-  const q = fastq.promise(asyncWorker, 40);
-
-  items.forEach((car) => q.push(car));
   await q.drained();
 
   console.log(Cars);
